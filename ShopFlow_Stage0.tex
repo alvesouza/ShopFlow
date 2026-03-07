@@ -1,0 +1,888 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{mdframed}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{cmap}
+\usepackage[T1]{fontenc}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{amssymb}
+\usepackage{fancyvrb}
+\usepackage{fvextra}
+
+% ── Colours ──────────────────────────────────────────────────────────────────
+\definecolor{primary}{RGB}{25,70,150}
+\definecolor{accent}{RGB}{0,150,120}
+\definecolor{warn}{RGB}{190,70,20}
+\definecolor{purple}{RGB}{110,50,160}
+\definecolor{codebg}{RGB}{244,246,250}
+\definecolor{boxbg}{RGB}{232,242,255}
+\definecolor{boxborder}{RGB}{25,70,150}
+\definecolor{dangercol}{RGB}{255,238,235}
+\definecolor{dangerborder}{RGB}{190,50,20}
+\definecolor{taskcol}{RGB}{245,240,255}
+\definecolor{taskborder}{RGB}{110,50,160}
+\definecolor{notecol}{RGB}{255,250,225}
+\definecolor{noteborder}{RGB}{200,160,0}
+\definecolor{treecol}{RGB}{245,245,255}
+\definecolor{treeborder}{RGB}{110,50,160}
+\definecolor{greencol}{RGB}{235,252,240}
+\definecolor{greenborder}{RGB}{0,140,60}
+
+% ── Code block: plain verbatim, fully copyable ───────────────────────────────
+% codeblock environment: framed box with light background, monospace font
+% Uses fancyvrb's BVerbatim so it can sit inside mdframed
+\newmdenv[
+  backgroundcolor=codebg,
+  linecolor=gray!40,
+  linewidth=0.6pt,
+  leftline=true,rightline=true,topline=true,bottomline=true,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt,
+  splittopskip=0pt
+]{codeframe}
+
+% Convenience command: \begin{codeblock} ... \end{codeblock}
+% wraps fvextra Verbatim inside a codeframe box
+\DefineVerbatimEnvironment{codeblock}{Verbatim}{
+  fontsize=\footnotesize,
+  fontfamily=tt,
+  breaklines=true,
+  breakanywhere=false,
+  breaksymbolleft={},
+  tabsize=4
+}
+
+% ── Sections ─────────────────────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries\color{primary}}{}{0em}{}[\color{primary}\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{accent}}{}{0em}{\textbullet\enspace}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{purple}}{}{0em}{\small$\triangleright$\enspace}
+
+% ── Info boxes ───────────────────────────────────────────────────────────────
+\newmdenv[backgroundcolor=boxbg,linecolor=boxborder,linewidth=2.5pt,
+  leftline=true,rightline=false,topline=false,bottomline=false,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt]{infobox}
+
+\newmdenv[backgroundcolor=dangercol,linecolor=dangerborder,linewidth=2.5pt,
+  leftline=true,rightline=false,topline=false,bottomline=false,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt]{dangerbox}
+
+\newmdenv[backgroundcolor=taskcol,linecolor=taskborder,linewidth=2.5pt,
+  leftline=true,rightline=false,topline=false,bottomline=false,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt]{taskbox}
+
+\newmdenv[backgroundcolor=notecol,linecolor=noteborder,linewidth=2.5pt,
+  leftline=true,rightline=false,topline=false,bottomline=false,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt]{notebox}
+
+\newmdenv[backgroundcolor=treecol,linecolor=treeborder,linewidth=2pt,
+  leftline=true,rightline=false,topline=false,bottomline=false,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt]{treebox}
+
+\newmdenv[backgroundcolor=greencol,linecolor=greenborder,linewidth=2.5pt,
+  leftline=true,rightline=false,topline=false,bottomline=false,
+  innerleftmargin=10pt,innerrightmargin=10pt,
+  innertopmargin=7pt,innerbottommargin=7pt]{greenbox}
+
+% ── Caption label for code blocks ────────────────────────────────────────────
+\newcommand{\codelabel}[1]{%
+  \vspace{2pt}%
+  {\footnotesize\color{gray}\textit{#1}}%
+  \vspace{2pt}%
+}
+
+% ── Header / Footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{primary}\textbf{C\# Interview Training --- ShopFlow}}
+\fancyhead[R]{\small\color{gray}Stage 0 --- Project Setup \& Broken Scaffold}
+\fancyfoot[C]{\small\color{gray}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\hypersetup{colorlinks=true,linkcolor=primary,urlcolor=accent}
+
+% =============================================================================
+\begin{document}
+
+% ── Title page ────────────────────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+{\Huge\bfseries\color{primary}ShopFlow\par}
+\vspace{0.25cm}
+{\large\color{gray}Order Processing \& Inventory Management API\par}
+\vspace{0.9cm}
+\rule{0.6\textwidth}{1.5pt}
+\vspace{0.9cm}
+{\LARGE\bfseries\color{warn}Stage 0\par}
+\vspace{0.2cm}
+{\large Project Setup, Architecture \& Broken Scaffold\par}
+\vspace{1.8cm}
+
+\begin{infobox}
+\textbf{What Stage 0 is}\\[6pt]
+You will scaffold the full solution from scratch using the terminal,
+create every project and wire up references, then be handed a large chunk
+of broken production code spread across multiple files.\\[6pt]
+Your job is to \textbf{identify every problem, fix it, and write tests}.
+Paste your solution back in the chat.\\[6pt]
+Your coach will then critique it, show the ideal version, and set Stage 1.
+\end{infobox}
+
+\vspace{1.2cm}
+\begin{center}
+\begin{tabular}{ll}
+\textbf{Domain:}      & E-commerce order processing \& inventory \\
+\textbf{Stack:}       & ASP.NET Core 8, EF Core, xUnit, Moq \\
+\textbf{Deliverable:} & Fixed code pasted in chat \\
+\textbf{Tests:}       & Minimum 14 unit tests \\
+\end{tabular}
+\end{center}
+
+\vfill
+{\small\color{gray}March 2026 --- C\# Senior Developer Interview Training}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Project Overview --- ShopFlow}
+
+ShopFlow is a backend API for a mid-size e-commerce company.
+It manages the full order lifecycle: customers browse products,
+place orders, make payments, and receive notifications.
+Warehouse staff manage inventory and fulfil shipments.
+
+By the end of all stages the system will have:
+
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+  \item A fully layered Clean Architecture solution (Domain, Application,
+        Infrastructure, API)
+  \item A rich domain model: Orders, Products, Inventory, Customers, Payments
+  \item Repository pattern and Unit of Work backed by EF Core
+  \item REST API with proper HTTP semantics and global error handling
+  \item Unit tests and integration tests with full isolation
+  \item Background jobs for stock reservation expiry
+  \item Docker Compose for local development
+\end{itemize}
+
+\begin{notebox}
+\textbf{Stage 0 scope:} Scaffold the solution and fix the broken service layer.
+No EF Core, no HTTP endpoints yet --- those come in later stages.
+\end{notebox}
+
+% =============================================================================
+\newpage
+\section{Solution Setup --- Run These Commands}
+
+Run every block in order. Each block is one commit.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 1 --- Create the Solution Root}
+
+\begin{codeframe}
+\begin{codeblock}
+mkdir ShopFlow && cd ShopFlow
+dotnet new sln --name ShopFlow
+git init
+git commit --allow-empty -m "chore: init repo"
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 2 --- Create .gitignore}
+
+Create a file named \texttt{.gitignore} in the root:
+
+\begin{codeframe}
+\begin{codeblock}
+bin/
+obj/
+.vs/
+*.user
+.env
+*.db
+.idea/
+\end{codeblock}
+\end{codeframe}
+
+\begin{codeframe}
+\begin{codeblock}
+git add .gitignore
+git commit -m "chore: add gitignore"
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 3 --- Scaffold All Projects}
+
+\begin{codeframe}
+\begin{codeblock}
+# Core layers
+dotnet new classlib -n ShopFlow.Domain         -o src/ShopFlow.Domain
+dotnet new classlib -n ShopFlow.Application    -o src/ShopFlow.Application
+dotnet new classlib -n ShopFlow.Infrastructure -o src/ShopFlow.Infrastructure
+dotnet new webapi   -n ShopFlow.Api            -o src/ShopFlow.Api
+
+# Test projects
+dotnet new xunit -n ShopFlow.Tests.Unit        -o tests/ShopFlow.Tests.Unit
+dotnet new xunit -n ShopFlow.Tests.Integration -o tests/ShopFlow.Tests.Integration
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 4 --- Register Projects in the Solution}
+
+\begin{codeframe}
+\begin{codeblock}
+dotnet sln add src/ShopFlow.Domain/ShopFlow.Domain.csproj
+dotnet sln add src/ShopFlow.Application/ShopFlow.Application.csproj
+dotnet sln add src/ShopFlow.Infrastructure/ShopFlow.Infrastructure.csproj
+dotnet sln add src/ShopFlow.Api/ShopFlow.Api.csproj
+dotnet sln add tests/ShopFlow.Tests.Unit/ShopFlow.Tests.Unit.csproj
+dotnet sln add tests/ShopFlow.Tests.Integration/ShopFlow.Tests.Integration.csproj
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 5 --- Wire Up Project References}
+
+\begin{codeframe}
+\begin{codeblock}
+# Application depends on Domain
+dotnet add src/ShopFlow.Application    reference src/ShopFlow.Domain
+
+# Infrastructure implements Application interfaces
+dotnet add src/ShopFlow.Infrastructure reference src/ShopFlow.Application
+
+# Api is the composition root
+dotnet add src/ShopFlow.Api            reference src/ShopFlow.Application
+dotnet add src/ShopFlow.Api            reference src/ShopFlow.Infrastructure
+
+# Unit tests cover Domain + Application
+dotnet add tests/ShopFlow.Tests.Unit   reference src/ShopFlow.Domain
+dotnet add tests/ShopFlow.Tests.Unit   reference src/ShopFlow.Application
+
+# Integration tests spin up the Api host
+dotnet add tests/ShopFlow.Tests.Integration reference src/ShopFlow.Api
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 6 --- Add NuGet Packages}
+
+\begin{codeframe}
+\begin{codeblock}
+# Unit test packages
+dotnet add tests/ShopFlow.Tests.Unit package xunit
+dotnet add tests/ShopFlow.Tests.Unit package xunit.runner.visualstudio
+dotnet add tests/ShopFlow.Tests.Unit package Moq
+dotnet add tests/ShopFlow.Tests.Unit package FluentAssertions
+dotnet add tests/ShopFlow.Tests.Unit package coverlet.collector
+
+# Integration test packages (used from Stage 3 onwards)
+dotnet add tests/ShopFlow.Tests.Integration package Microsoft.AspNetCore.Mvc.Testing
+dotnet add tests/ShopFlow.Tests.Integration package FluentAssertions
+
+git add .
+git commit -m "chore: scaffold solution, projects, references and packages"
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Step 7 --- Create the Internal Folder Structure}
+
+\begin{codeframe}
+\begin{codeblock}
+# Domain
+mkdir -p src/ShopFlow.Domain/Entities
+mkdir -p src/ShopFlow.Domain/ValueObjects
+mkdir -p src/ShopFlow.Domain/Enums
+mkdir -p src/ShopFlow.Domain/Exceptions
+
+# Application
+mkdir -p src/ShopFlow.Application/Interfaces
+mkdir -p src/ShopFlow.Application/Services
+mkdir -p src/ShopFlow.Application/DTOs
+mkdir -p src/ShopFlow.Application/Common
+
+# Infrastructure (stubbed -- implemented in later stages)
+mkdir -p src/ShopFlow.Infrastructure/Persistence
+mkdir -p src/ShopFlow.Infrastructure/Repositories
+mkdir -p src/ShopFlow.Infrastructure/Services
+mkdir -p src/ShopFlow.Infrastructure/Extensions
+
+# Api (stubbed -- implemented in later stages)
+mkdir -p src/ShopFlow.Api/Controllers
+mkdir -p src/ShopFlow.Api/Middleware
+mkdir -p src/ShopFlow.Api/Extensions
+
+# Test folders
+mkdir -p tests/ShopFlow.Tests.Unit/Domain
+mkdir -p tests/ShopFlow.Tests.Unit/Application
+mkdir -p tests/ShopFlow.Tests.Unit/Helpers
+mkdir -p tests/ShopFlow.Tests.Integration/Endpoints
+
+git add .
+git commit -m "chore: create internal folder structure"
+\end{codeblock}
+\end{codeframe}
+
+% =============================================================================
+\newpage
+\section{Full Directory Tree}
+
+After all steps above your solution must look exactly like this:
+
+\begin{treebox}
+\begin{codeblock}
+ShopFlow/
+|-- ShopFlow.sln
+|-- .gitignore
+|
+|-- src/
+|   |
+|   |-- ShopFlow.Domain/
+|   |   |-- ShopFlow.Domain.csproj        <- zero NuGet refs allowed
+|   |   |-- Entities/
+|   |   |   |-- Order.cs
+|   |   |   |-- OrderItem.cs
+|   |   |   |-- Product.cs
+|   |   |   |-- Customer.cs
+|   |   |   `-- InventoryEntry.cs
+|   |   |-- ValueObjects/
+|   |   |   |-- Money.cs
+|   |   |   `-- Address.cs
+|   |   |-- Enums/
+|   |   |   |-- OrderStatus.cs
+|   |   |   `-- PaymentStatus.cs
+|   |   `-- Exceptions/
+|   |       |-- DomainException.cs
+|   |       `-- NotFoundException.cs
+|   |
+|   |-- ShopFlow.Application/
+|   |   |-- ShopFlow.Application.csproj
+|   |   |-- Interfaces/
+|   |   |   |-- IOrderRepository.cs
+|   |   |   |-- IProductRepository.cs
+|   |   |   |-- IInventoryRepository.cs
+|   |   |   |-- IEmailSender.cs
+|   |   |   `-- IUnitOfWork.cs
+|   |   |-- Services/
+|   |   |   |-- OrderService.cs           <- fix this
+|   |   |   |-- InventoryService.cs       <- fix this
+|   |   |   `-- PromoEngine.cs            <- create this
+|   |   |-- DTOs/
+|   |   |   |-- PlaceOrderRequest.cs
+|   |   |   |-- OrderDto.cs
+|   |   |   `-- OrderItemDto.cs
+|   |   `-- Common/
+|   |       `-- Result.cs
+|   |
+|   |-- ShopFlow.Infrastructure/
+|   |   |-- ShopFlow.Infrastructure.csproj
+|   |   |-- Repositories/
+|   |   |   |-- InMemoryOrderRepository.cs   <- implement this
+|   |   |   `-- InMemoryProductRepository.cs <- implement this
+|   |   `-- Services/
+|   |       `-- ConsoleEmailSender.cs         <- implement this
+|   |
+|   `-- ShopFlow.Api/                     <- stub only for Stage 0
+|       |-- ShopFlow.Api.csproj
+|       |-- Program.cs
+|       |-- Controllers/
+|       |-- Middleware/
+|       `-- Extensions/
+|
+`-- tests/
+    |-- ShopFlow.Tests.Unit/
+    |   |-- ShopFlow.Tests.Unit.csproj
+    |   |-- Domain/
+    |   |   |-- OrderTests.cs
+    |   |   `-- ProductTests.cs
+    |   |-- Application/
+    |   |   |-- OrderServiceTests.cs      <- your main test file
+    |   |   `-- PromoEngineTests.cs
+    |   `-- Helpers/
+    |       `-- DomainFactory.cs
+    |
+    `-- ShopFlow.Tests.Integration/       <- stub only for Stage 0
+        |-- ShopFlow.Tests.Integration.csproj
+        `-- Endpoints/
+\end{codeblock}
+\end{treebox}
+
+\begin{dangerbox}
+\textbf{Hard rules enforced at review:}\\[4pt]
+\begin{itemize}[leftmargin=1.2em,itemsep=2pt]
+  \item \texttt{ShopFlow.Domain.csproj} must have zero \texttt{<PackageReference>} entries
+  \item \texttt{ShopFlow.Application} must not reference Infrastructure or Api
+  \item \texttt{dotnet build} must pass with zero warnings
+  \item \texttt{dotnet test} must pass with zero failures
+\end{itemize}
+\end{dangerbox}
+
+% =============================================================================
+\newpage
+\section{The Broken Code}
+
+A junior developer built the first working version of two service classes.
+They compile. They run. They are wrong. Fix them.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{File 1 --- src/ShopFlow.Domain/Entities/Order.cs}
+
+\codelabel{Order.cs and OrderItem.cs as the junior left them}
+\begin{codeframe}
+\begin{codeblock}
+public class Order
+{
+    public string          Id         { get; set; }
+    public string          CustomerId { get; set; }
+    public List<OrderItem> Items      { get; set; }
+    public decimal         Total      { get; set; }
+    public string          Status     { get; set; }  // "pending" "shipped" etc
+    public DateTime        CreatedAt  { get; set; }
+}
+
+public class OrderItem
+{
+    public string  ProductId { get; set; }
+    public string  Name      { get; set; }
+    public decimal Price     { get; set; }
+    public int     Quantity  { get; set; }
+}
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{File 2 --- src/ShopFlow.Domain/Entities/Product.cs}
+
+\codelabel{Product.cs as the junior left it}
+\begin{codeframe}
+\begin{codeblock}
+public class Product
+{
+    public string  Id       { get; set; }
+    public string  Name     { get; set; }
+    public decimal Price    { get; set; }
+    public int     Stock    { get; set; }
+    public bool    IsActive { get; set; }
+
+    public void Reserve(int quantity)
+    {
+        Stock -= quantity;   // no guard: stock can go negative
+    }
+
+    public void Restock(int quantity)
+    {
+        Stock += quantity;
+    }
+}
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{File 3 --- src/ShopFlow.Application/Services/OrderService.cs}
+
+\codelabel{OrderService.cs --- every concern crammed into one class}
+\begin{codeframe}
+\begin{codeblock}
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Mail;
+
+public class OrderService
+{
+    private List<Order>   _orders   = new List<Order>();
+    private List<Product> _products = new List<Product>();
+
+    private string _smtpHost  = "smtp.shopflow.io";
+    private int    _smtpPort  = 587;
+    private string _emailFrom = "orders@shopflow.io";
+
+    public string PlaceOrder(string customerId,
+                             List<OrderItem> items,
+                             string promoCode)
+    {
+        if (customerId == null || customerId == "")
+            throw new Exception("Bad customer");
+        if (items == null || items.Count == 0)
+            throw new Exception("No items");
+
+        // check stock inline
+        foreach (var item in items)
+        {
+            var product = _products.FirstOrDefault(
+                p => p.Id == item.ProductId);
+            if (product == null)
+                throw new Exception("Product not found: " + item.ProductId);
+            if (product.Stock < item.Quantity)
+                throw new Exception("Not enough stock for " + item.Name);
+        }
+
+        // calculate total
+        decimal total = 0;
+        foreach (var item in items)
+            total += item.Price * item.Quantity;
+
+        // apply promo
+        if (promoCode == "SAVE10")
+            total = total - (total * 0.10m);
+        else if (promoCode == "SAVE20")
+            total = total - (total * 0.20m);
+        else if (promoCode == "HALFOFF")
+            total = total / 2;
+        // TODO: add more promo codes when marketing sends them
+
+        // reserve stock inline
+        foreach (var item in items)
+        {
+            var product = _products.First(p => p.Id == item.ProductId);
+            product.Reserve(item.Quantity);
+        }
+
+        // create order
+        var order        = new Order();
+        order.Id         = Guid.NewGuid().ToString();
+        order.CustomerId = customerId;
+        order.Items      = items;
+        order.Total      = total;
+        order.Status     = "pending";
+        order.CreatedAt  = DateTime.Now;
+        _orders.Add(order);
+
+        // send email directly
+        try
+        {
+            var client  = new SmtpClient(_smtpHost, _smtpPort);
+            var msg     = new MailMessage();
+            msg.From    = new MailAddress(_emailFrom);
+            msg.To.Add(customerId + "@customers.shopflow.io");
+            msg.Subject = "Your order " + order.Id;
+            msg.Body    = "Thanks! Total: " + total +
+                          ". Items: " + items.Count;
+            client.Send(msg);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Email failed: " + e.Message);
+        }
+
+        Console.WriteLine("[" + DateTime.Now + "] Order placed: "
+            + order.Id + " customer=" + customerId + " total=" + total);
+
+        return order.Id;
+    }
+
+    public Order GetOrder(string orderId)
+    {
+        foreach (var o in _orders)
+            if (o.Id == orderId) return o;
+        return null;
+    }
+
+    public bool CancelOrder(string orderId)
+    {
+        foreach (var o in _orders)
+        {
+            if (o.Id == orderId)
+            {
+                if (o.Status == "shipped")
+                    return false;   // cannot cancel
+
+                o.Status = "cancelled";
+
+                // refund stock inline
+                foreach (var item in o.Items)
+                {
+                    var product = _products.FirstOrDefault(
+                        p => p.Id == item.ProductId);
+                    if (product != null)
+                        product.Restock(item.Quantity);
+                }
+
+                // copy-paste email block
+                try
+                {
+                    var client  = new SmtpClient(_smtpHost, _smtpPort);
+                    var msg     = new MailMessage();
+                    msg.From    = new MailAddress(_emailFrom);
+                    msg.To.Add(o.CustomerId + "@customers.shopflow.io");
+                    msg.Subject = "Order " + orderId + " cancelled";
+                    msg.Body    = "Your order has been cancelled.";
+                    client.Send(msg);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Email failed: " + e.Message);
+                }
+                return true;
+            }
+        }
+        return false;   // not found -- same return value as "cannot cancel"
+    }
+
+    public List<Order> GetOrdersByCustomer(string customerId)
+    {
+        var result = new List<Order>();
+        foreach (var o in _orders)
+            if (o.CustomerId == customerId)
+                result.Add(o);
+        return result;
+    }
+
+    public decimal GetRevenueReport()
+    {
+        decimal revenue = 0;
+        foreach (var o in _orders)
+            if (o.Status != "cancelled")
+                revenue += o.Total;
+        return revenue;
+    }
+}
+\end{codeblock}
+\end{codeframe}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{File 4 --- src/ShopFlow.Application/Services/InventoryService.cs}
+
+\codelabel{InventoryService.cs --- also broken, separate state from OrderService}
+\begin{codeframe}
+\begin{codeblock}
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class InventoryService
+{
+    // completely separate list from the one in OrderService
+    // stock changes here are invisible to OrderService and vice versa
+    private List<Product> _products = new List<Product>();
+
+    public void AddProduct(string id, string name,
+                           decimal price, int initialStock)
+    {
+        if (string.IsNullOrEmpty(id))
+            throw new Exception("Id required");
+        if (price <= 0)
+            throw new Exception("Bad price");
+
+        _products.Add(new Product
+        {
+            Id       = id,
+            Name     = name,
+            Price    = price,
+            Stock    = initialStock,
+            IsActive = true
+        });
+    }
+
+    public void AdjustStock(string productId, int delta)
+    {
+        var product = _products.FirstOrDefault(p => p.Id == productId);
+        if (product == null)
+            throw new Exception("Not found");
+
+        product.Stock += delta;  // no guard: stock can go negative
+    }
+
+    public List<Product> GetLowStockProducts(int threshold)
+    {
+        // queries AND sends an email -- SRP violation
+        var low = _products.Where(p => p.Stock < threshold).ToList();
+
+        if (low.Count > 0)
+        {
+            try
+            {
+                var client = new System.Net.Mail.SmtpClient(
+                    "smtp.shopflow.io", 587);
+                var msg    = new System.Net.Mail.MailMessage();
+                msg.From   = new System.Net.Mail.MailAddress(
+                    "alerts@shopflow.io");
+                msg.To.Add("warehouse@shopflow.io");
+                msg.Subject = "Low stock alert";
+                msg.Body    = low.Count + " products low.";
+                client.Send(msg);
+            }
+            catch { }  // silently swallow all errors
+        }
+
+        return low;
+    }
+
+    public bool DeactivateProduct(string productId)
+    {
+        var product = _products.FirstOrDefault(p => p.Id == productId);
+        if (product == null) return false;  // same false-for-two-reasons bug
+
+        product.IsActive = false;
+        return true;
+    }
+}
+\end{codeblock}
+\end{codeframe}
+
+% =============================================================================
+\newpage
+\section{Problem Map --- Read After Forming Your Own List}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Principle} & \textbf{Broken?} & \textbf{Where} \\
+\midrule
+SRP & Yes & \texttt{OrderService} calculates totals, manages stock,
+            sends emails, and logs --- four reasons to change \\
+SRP & Yes & \texttt{InventoryService.GetLowStockProducts} queries
+            and sends an alert email in the same method \\
+OCP & Yes & Every new promo code requires editing \texttt{OrderService} \\
+LSP & ---  & Not applicable yet \\
+ISP & Yes & Callers needing only revenue reporting import
+            the full \texttt{OrderService} with email and stock logic \\
+DIP & Yes & Both services construct \texttt{SmtpClient} directly;
+            nothing is injected \\
+\midrule
+State       & Critical & \texttt{OrderService} and \texttt{InventoryService}
+                         each own a separate \texttt{List<Product>} so
+                         stock changes in one are invisible to the other \\
+Errors      & Weak     & \texttt{throw new Exception("Bad customer")} is
+                         untyped and unactionable \\
+Errors      & Weak     & \texttt{CancelOrder} returns \texttt{false} for
+                         both not-found and already-shipped ---
+                         caller cannot distinguish \\
+Magic str.  & Yes      & \texttt{"pending"}, \texttt{"shipped"},
+                         \texttt{"cancelled"} scattered across both files \\
+Mutability  & Yes      & Every property on \texttt{Order}, \texttt{OrderItem},
+                         and \texttt{Product} has a public setter \\
+Guard       & Missing  & \texttt{Product.Reserve} allows stock to go negative \\
+Dates       & Wrong    & \texttt{DateTime.Now} (local) instead of
+                         \texttt{DateTimeOffset.UtcNow} \\
+Duplication & Yes      & SMTP block copy-pasted verbatim in
+                         \texttt{PlaceOrder}, \texttt{CancelOrder},
+                         and \texttt{GetLowStockProducts} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =============================================================================
+\newpage
+\section{Your Tasks}
+
+\begin{taskbox}
+Complete all five tasks and paste all code inline in the chat.
+No GitHub repo needed for Stage 0.
+\end{taskbox}
+
+\subsection{Task 1 --- List Every Problem}
+
+Before writing a single line of code, write your analysis as bullet points.
+For each problem state: which principle is violated, which lines, and what the fix is.
+This is what a senior developer does in a PR review.
+
+\subsection{Task 2 --- Fix the Domain Entities}
+
+Rewrite \texttt{Order}, \texttt{OrderItem}, and \texttt{Product} in the Domain project.
+
+Requirements:
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+  \item No public setters --- use private setters and behaviour methods
+  \item \texttt{OrderStatus} must be an enum, not a raw string
+  \item \texttt{Order.Total} must be computed from items, not stored as a field
+  \item \texttt{Product.Reserve(int)} must throw a typed \texttt{DomainException}
+        if the quantity would make stock go negative
+  \item All entities need an EF Core compatible private parameterless constructor
+  \item Use \texttt{DateTimeOffset} not \texttt{DateTime}
+  \item Create \texttt{DomainException} and \texttt{NotFoundException}
+        under \texttt{ShopFlow.Domain/Exceptions/}
+\end{itemize}
+
+\subsection{Task 3 --- Refactor the Application Layer}
+
+Rewrite both services so they satisfy SOLID. You must:
+
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+  \item Create interfaces \texttt{IOrderRepository}, \texttt{IProductRepository},
+        and \texttt{IEmailSender} in \texttt{ShopFlow.Application/Interfaces/}
+  \item Create a \texttt{PromoEngine} class that is open for extension ---
+        adding a new promo code must not require editing \texttt{OrderService}
+  \item \texttt{OrderService} must depend only on those interfaces via
+        constructor injection, never on concretions
+  \item \texttt{InventoryService} must use \texttt{IProductRepository}
+        and \texttt{IEmailSender}, never \texttt{SmtpClient} directly
+  \item \texttt{CancelOrder} must not return \texttt{false} for two different
+        reasons --- fix the ambiguity however you see fit
+  \item Implement \texttt{InMemoryOrderRepository} and
+        \texttt{InMemoryProductRepository} in Infrastructure
+  \item Implement \texttt{ConsoleEmailSender} in Infrastructure
+        (writes to console --- no real SMTP needed)
+\end{itemize}
+
+\subsection{Task 4 --- Write Unit Tests}
+
+Write at least \textbf{10 unit tests} in \texttt{OrderServiceTests.cs}
+using xUnit and Moq. Cover:
+
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+  \item \texttt{PlaceOrder} happy path --- order saved, id returned
+  \item \texttt{PlaceOrder} empty \texttt{customerId} --- correct exception
+  \item \texttt{PlaceOrder} empty items list --- correct exception
+  \item \texttt{PlaceOrder} product not found --- correct exception
+  \item \texttt{PlaceOrder} insufficient stock --- correct exception
+  \item \texttt{PlaceOrder} with \texttt{SAVE10} promo --- total discounted correctly
+  \item \texttt{PlaceOrder} with unknown promo --- no discount applied
+  \item \texttt{PlaceOrder} email failure --- order is still saved
+  \item \texttt{CancelOrder} on a pending order --- succeeds
+  \item \texttt{CancelOrder} on a shipped order --- fails with the correct signal
+\end{itemize}
+
+Write at least \textbf{4 domain tests} in \texttt{OrderTests.cs}
+and \texttt{ProductTests.cs}.
+
+\subsection{Task 5 --- Answer in Prose}
+
+\begin{notebox}
+\textbf{Answer both questions before you submit.}\\[6pt]
+\textbf{Q1.} The original code has two separate \texttt{List<Product>} ---
+one in \texttt{OrderService} and one in \texttt{InventoryService}.
+Stock reserved during \texttt{PlaceOrder} is invisible to
+\texttt{InventoryService}. How does your refactoring fix this,
+and which design principle does it invoke?\\[8pt]
+\textbf{Q2.} You chose a specific strategy for the promo code extensibility problem.
+What pattern did you use, why is it open for extension,
+and what is its trade-off?
+\end{notebox}
+
+% =============================================================================
+\section{Acceptance Checklist}
+
+Run these yourself before pasting your solution:
+
+\begin{greenbox}
+\begin{itemize}[leftmargin=1.2em,itemsep=4pt]
+  \item[$\square$] \texttt{dotnet build} --- zero errors, zero warnings
+  \item[$\square$] \texttt{dotnet test} --- all tests green
+  \item[$\square$] \texttt{ShopFlow.Domain.csproj} has zero \texttt{<PackageReference>} entries
+  \item[$\square$] No \texttt{SmtpClient} anywhere outside the Infrastructure project
+  \item[$\square$] No magic strings \texttt{"pending"} / \texttt{"shipped"} / \texttt{"cancelled"}
+  \item[$\square$] No public setters on any domain entity
+  \item[$\square$] \texttt{Product.Reserve} throws on negative stock
+  \item[$\square$] \texttt{CancelOrder} distinguishes not-found from cannot-cancel
+  \item[$\square$] All service methods accept a \texttt{CancellationToken} parameter
+  \item[$\square$] At least 14 passing unit tests
+\end{itemize}
+\end{greenbox}
+
+\end{document}
