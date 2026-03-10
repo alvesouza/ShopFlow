@@ -1,61 +1,88 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ShopFlow.Domain.Entities;
+using ShopFlow.Domain.Exceptions;
+using ShopFlow.Domain.Const;
+using ShopFlow.Application.Interfaces;
 public class InventoryService
 {
     // completely separate list from the one in OrderService
     // stock changes here are invisible to OrderService and vice versa
-    private List<Product> _products = new List<Product>();
-    public void AddProduct(string id, string name,
-                    decimal price, int initialStock)
+    private IProductRepository _productRepo;
+    private readonly IEmailSender _emailSender;
+
+    public InventoryService(
+        IProductRepository productRepo,
+        IEmailSender emailSender
+    )
     {
-        if (string.IsNullOrEmpty(id))
-            throw new Exception("Id required");
-        if (price <= 0)
-            throw new Exception("Bad price");
-        _products.Add(new Product
-        {
-            Id = id,
-            Name = name,
-            Price = price,
-            Stock = initialStock,
-            IsActive = true
-        });
+        _productRepo = productRepo;
+        _emailSender = emailSender;
     }
-    public void AdjustStock(string productId, int delta)
+
+    public async Task AddProductAsync( string name,
+                    decimal price, int initialStock,
+                        CancellationToken ct = default )
     {
-        var product = _products.FirstOrDefault(p => p.Id == productId);
-        if (product == null)
-            throw new Exception("Not found");
-        product.Stock += delta; // no guard: stock can go negative
+        var product = new Product( name, price, initialStock );
+        await _productRepo.AddAsync( product, ct );
+        await _productRepo.SaveChangesAsync(ct);
     }
-    public List<Product> GetLowStockProducts(int threshold)
+    public async Task AdjustStock(Guid productId, int delta,
+        CancellationToken ct = default)
+    {
+        var product = await _productRepo.GetByIdAsync(
+            productId, ct
+        ) ?? 
+            throw new NotFoundException( 
+                ExceptionConsts.INVALID_PRODUCT,
+                productId.ToString()
+            );
+        if( delta > 0 )
+            product.Restock(delta);
+        else if(delta < 0)
+            product.Reserve(-delta);
+
+        await _productRepo.SaveChangesAsync(ct);
+    }
+    public async Task<List<Product>> GetLowStockProducts(int threshold,
+        CancellationToken ct = default)
     {
         // queries AND sends an email -- SRP violation
-        var low = _products.Where(p => p.Stock < threshold).ToList();
+        /*
+        // send email directly
+        // string emailTo, string subject, string body
+        _emailSender.SendEmail(
+            customerId + "@customers.shopflow.io",
+            "Your order " + order.Id,
+            "Thanks! Total: " + total +
+                ". Items: " + items.Count
+        );
+        */
+        var all = await _productRepo.GetAllAsync(ct);
+        var low = all.Where(p => p.Stock < threshold).ToList();
         if (low.Count > 0)
         {
-            try
-            {
-                var client = new System.Net.Mail.SmtpClient(
-                    "smtp.shopflow.io", 587);
-                var msg = new System.Net.Mail.MailMessage();
-                msg.From = new System.Net.Mail.MailAddress(
-                    "alerts@shopflow.io");
-                msg.To.Add("warehouse@shopflow.io");
-                msg.Subject = "Low stock alert";
-                msg.Body = low.Count + " products low.";
-                client.Send(msg);
-            }
-            catch { } // silently swallow all errors
+            _emailSender.SendEmail(
+                "warehouse@shopflow.io",
+                "Low stock alert",
+                low.Count + " products low."
+            );
         }
         return low;
     }
-    public bool DeactivateProduct(string productId)
+    public async Task DeactivateProduct(
+        Guid productId, CancellationToken ct = default )
     {
-        var product = _products.FirstOrDefault(p => p.Id == productId);
-        if (product == null) return false; // same false-for-two-reasons bug
-        product.IsActive = false;
-        return true;
+        var product = await _productRepo.GetByIdAsync(productId, ct)
+            ?? 
+            throw new NotFoundException(
+                ExceptionConsts.INVALID_PRODUCT,
+                productId.ToString()
+            );
+        product.Deactivate();
+
+        await _productRepo.SaveChangesAsync(ct);
     }
 }

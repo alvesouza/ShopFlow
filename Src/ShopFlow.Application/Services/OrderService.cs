@@ -2,134 +2,135 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
+using ShopFlow.Domain.Entities;
+using ShopFlow.Domain.Enums;
+using ShopFlow.Domain.Exceptions;
+using ShopFlow.Domain.Const;
+using ShopFlow.Application.Interfaces;
+using System.Runtime.CompilerServices;
+
+namespace ShopFlow.Application.Services;
 public class OrderService
 {
-    private List<Order> _orders = new List<Order>();
-    private List<Product> _products = new List<Product>();
-    private string _smtpHost = "smtp.shopflow.io";
-    private int _smtpPort = 587;
-    private string _emailFrom = "orders@shopflow.io";
-    public string PlaceOrder(string customerId,
-        List<OrderItem> items,  string promoCode)
+    private readonly IOrderRepository   _orderRepo;
+    private readonly IProductRepository _productRepo;
+    private readonly IEmailSender       _emailSender;
+    private readonly IPromoEngine       _promoEngine;
+
+    // dependencies injected -- never newed inside
+    public OrderService(
+        IOrderRepository   orderRepo,
+        IProductRepository productRepo,
+        IEmailSender       emailSender,
+        IPromoEngine       promoEngine)
+    {
+        _orderRepo   = orderRepo;
+        _productRepo = productRepo;
+        _emailSender = emailSender;
+        _promoEngine = promoEngine;
+    }
+
+    public async Task<Guid> PlaceOrderAsync(string? customerId,
+        List<(Guid ProdutId, int Quantity)> lines,  string? promoCode,
+            CancellationToken ct = default)
     {
         if (customerId == null || customerId == "")
-            throw new Exception("Bad customer");
-        if (items == null || items.Count == 0)
-            throw new Exception("No items");
-        // check stock inline
-        foreach (var item in items)
+            throw new DomainException( 
+                ExceptionConsts.INVALID_CUSTOMER,
+                "customerId must have a value"
+            ); // Exception("Bad customer");
+        if (lines == null || lines.Count == 0)
+            throw new DomainException( 
+                ExceptionConsts.EMPTY_ORDER,
+                "There is nothing being ordered"
+            );
+        // resolve products -- repository call, not an inline list
+        var items = new List<OrderItem>();
+        foreach (var (productId, quantity) in lines)
         {
-            var product = _products.FirstOrDefault(
-            p => p.Id == item.ProductId);
-            if (product == null)
-                throw new Exception("Product not found: " + item.ProductId);
-            if (product.Stock < item.Quantity)
-                throw new Exception("Not enough stock for " + item.Name);
-        }
-        // calculate total
-        decimal total = 0;
-        foreach (var item in items)
-            total += item.Price * item.Quantity;
-        // apply promo
-        if (promoCode == "SAVE10")
-            total = total - (total * 0.10m);
-        else if (promoCode == "SAVE20")
-            total = total - (total * 0.20m);
-        else if (promoCode == "HALFOFF")
-            total = total / 2;
-        // TODO: add more promo codes when marketing sends them
-        // reserve stock inline
-        foreach (var item in items)
-        {
-            var product = _products.First(p => p.Id == item.ProductId);
-            product.Reserve(item.Quantity);
+            var product = await _productRepo.GetByIdAsync(
+                productId,
+                ct
+            ) ?? throw new NotFoundException(
+                    ExceptionConsts.INVALID_PRODUCT,
+                    productId.ToString()
+                );
+            
+            product.Reserve(quantity);
+            
+            items.Add(
+                new OrderItem(
+                    product.Id.ToString(),
+                    product.Name,
+                    product.Price,
+                    quantity
+                )
+            );
         }
         // create order
-        var order = new Order();
-        order.Id = Guid.NewGuid().ToString();
-        order.CustomerId = customerId;
-        order.Items = items;
-        order.Total = total;
-        order.Status = "pending";
-        order.CreatedAt = DateTime.Now;
-        _orders.Add(order);
-        // send email directly
+        var order = new Order(customerId, items);
+        await _orderRepo.AddAsync(order, ct);
+        await _orderRepo.SaveChangesAsync(ct);
+
+        var total = _promoEngine.CalculatePromo(order.Total, promoCode );
         try
         {
-            var client = new SmtpClient(_smtpHost, _smtpPort);
-            var msg = new MailMessage();
-            msg.From = new MailAddress(_emailFrom);
-            msg.To.Add(customerId + "@customers.shopflow.io");
-            msg.Subject = "Your order " + order.Id;
-            msg.Body = "Thanks! Total: " + total +
-            ". Items: " + items.Count;
-            client.Send(msg);
+            _emailSender.SendEmail(
+                customerId + "@customers.shopflow.io",
+                "Your order " + order.Id,
+                "Thanks! Total: " + total + ". Items: " + items.Count
+            );
         }
-        catch (Exception e)
-        {
-            Console.WriteLine("Email failed: " + e.Message);
-        }
-        Console.WriteLine("[" + DateTime.Now + "] Order placed: "
+        catch { /* best-effort: email failure must not abort a placed order */ }
+        Console.WriteLine("[" + DateTimeOffset.Now + "] Order placed: "
         + order.Id + " customer=" + customerId + " total=" + total);
         return order.Id;
     }
-    public Order? GetOrder(string orderId)
+    public async Task<Order> GetOrderAsync(Guid orderId,
+        CancellationToken ct = default )
     {
-        foreach (var o in _orders)
-            if (o.Id == orderId) return o;
-        return null;
+        return await _orderRepo.GetByIdAsync(orderId, ct)
+            ?? throw new NotFoundException("Order", orderId.ToString());
     }
-    public bool CancelOrder(string orderId)
+    public async Task CancelOrderAsync(Guid orderId, CancellationToken ct = default)
     {
-        foreach (var o in _orders)
+        var order = await _orderRepo.GetByIdAsync(orderId, ct)
+            ?? throw new NotFoundException(
+                ExceptionConsts.Order,
+                $"Order {orderId} not found"
+            );
+        
+        order.Cancel();
+
+        foreach( var item in order.Items )
         {
-            if (o.Id == orderId)
-            {
-                if (o.Status == "shipped")
-                    return false; // cannot cancel
-                o.Status = "cancelled";
-                // refund stock inline
-                foreach (var item in o.Items)
-                {
-                    var product = _products.FirstOrDefault(
-                    p => p.Id == item.ProductId);
-                    if (product != null)
-                        product.Restock(item.Quantity);
-                }
-                // copy-paste email block
-                try
-                {
-                    var client = new SmtpClient(_smtpHost, _smtpPort);
-                    var msg = new MailMessage();
-                    msg.From = new MailAddress(_emailFrom);
-                    msg.To.Add(o.CustomerId + "@customers.shopflow.io");
-                    msg.Subject = "Order " + orderId + " cancelled";
-                    msg.Body = "Your order has been cancelled.";
-                    client.Send(msg);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Email failed: " + e.Message);
-                }
-                return true;
-            }
+            var product = await _productRepo.GetByIdAsync(
+                Guid.Parse( item.ProductId ),
+                ct
+            );
+
+            product?.Restock(item.Quantity);
         }
-        return false; // not found -- same return value as "cannot cancel"
+
+        await _orderRepo.SaveChangesAsync(ct);
+
+        // send email directly
+        // string emailTo, string subject, string body
+        _emailSender.SendEmail(
+            order.CustomerId + "@customers.shopflow.io",
+            "Order " + orderId + " cancelled",
+            "Your order has been cancelled."
+        );
     }
-    public List<Order> GetOrdersByCustomer(string customerId)
+    public async Task<IReadOnlyList<Order>> GetOrdersByCustomerAsync(
+        string customerId,
+        CancellationToken ct = default )
     {
-        var result = new List<Order>();
-        foreach (var o in _orders)
-            if (o.CustomerId == customerId)
-                result.Add(o);
-        return result;
+        var orders = await _orderRepo.GetByCustomerAsync( customerId, ct );
+        return orders;
     }
-    public decimal GetRevenueReport()
+    public async Task<decimal> GetRevenueReportAsync()
     {
-        decimal revenue = 0;
-        foreach (var o in _orders)
-            if (o.Status != "cancelled")
-                revenue += o.Total;
-        return revenue;
+        return await _orderRepo.GetRevenue();
     }
 }
